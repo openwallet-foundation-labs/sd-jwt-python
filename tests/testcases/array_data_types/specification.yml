@@ -1,0 +1,29 @@
+user_claims:
+  data_types:
+    - !sd null
+    - !sd 42
+    - !sd 3.14
+    - !sd "foo"
+    - !sd True
+    - !sd ["Test"]  
+    - !sd {"foo": "bar"}
+
+holder_disclosed_claims:
+  data_types:
+    - True
+    - True
+    - True
+    - True
+    - True
+    - True
+    - True
+
+expect_verified_user_claims:
+  data_types:
+    - null
+    - 42
+    - 3.14
+    - "foo"
+    - True
+    - ["Test"]  
+    - {"foo": "bar"}

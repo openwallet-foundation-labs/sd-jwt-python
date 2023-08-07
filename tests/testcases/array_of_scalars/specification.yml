@@ -1,0 +1,16 @@
+user_claims:
+  # Make only first two elements SD - this array will have three elements in the resulting SD-JWT, first two hidden
+  nationalities: 
+    - !sd "US"
+    - !sd "CA"
+    - "DE"
+
+holder_disclosed_claims:
+  nationalities:
+    - False
+    - True
+
+expect_verified_user_claims:
+  nationalities:
+    - "CA"
+    - "DE"

@@ -1,0 +1,11 @@
+user_claims:
+  !sd sd_array:
+    - 32
+    - 23
+
+holder_disclosed_claims:
+  sd_array: True
+
+expect_verified_user_claims:
+  sd_array: [32, 23]
+    

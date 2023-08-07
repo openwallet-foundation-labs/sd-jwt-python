@@ -1,0 +1,58 @@
+user_claims:
+  value_data_types:
+    !sd test_null: null
+    !sd test_int: 42
+    !sd test_float: 3.14
+    !sd test_str: "foo"
+    !sd test_bool: True
+    !sd test_arr: ["Test"]
+    !sd test_object: { "foo": "bar" }
+
+  key_data_types: # implementations parsing keys as anything other than strings are not compliant
+    !sd "null": key_null
+    !sd "42": key_int
+    !sd "3.14": key_float
+    !sd "foo": key_str
+    !sd "True": key_bool
+    !sd '["Test"]': key_arr
+    !sd '{"foo": "bar"}': key_object
+
+
+holder_disclosed_claims:
+  value_data_types:
+    test_null: True
+    test_int: True
+    test_float: True
+    test_str: True
+    test_bool: True
+    test_arr: True
+    test_object: True
+
+  key_data_types:
+    "null": True
+    "42": True
+    "3.14": True
+    "foo": True
+    "True": True
+    '["Test"]': True
+    '{"foo": "bar"}': True
+
+expect_verified_user_claims:
+  value_data_types:
+    test_null: null
+    test_int: 42
+    test_float: 3.14
+    test_str: "foo"
+    test_bool: True
+    test_arr: ["Test"]
+    test_object: { "foo": "bar" }
+
+  key_data_types:
+    "null": "key_null"
+    "42": "key_int"
+    "3.14": "key_float"
+    "foo": "key_str"
+    "True": "key_bool"
+    '["Test"]': "key_arr"
+    '{"foo": "bar"}': "key_object"
+

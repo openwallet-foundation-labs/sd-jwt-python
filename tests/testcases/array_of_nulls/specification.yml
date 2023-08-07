@@ -1,0 +1,15 @@
+user_claims:
+  null_values:
+    - null
+    - !sd null
+    - !sd null
+    - null
+
+
+holder_disclosed_claims: {}
+
+expect_verified_user_claims:
+  null_values:
+    - null
+    - null
+    

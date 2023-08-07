@@ -1,0 +1,8 @@
+user_claims:
+  nested_array: [[!sd "foo", !sd "bar"], [!sd "baz", !sd "qux"]]
+
+holder_disclosed_claims:
+  nested_array: [[True, False], [False, True]]
+
+expect_verified_user_claims:
+  nested_array: [["foo"], ["qux"]]

@@ -1,0 +1,15 @@
+user_claims:
+  # Make all elements SD
+  is_over:
+    !sd "13": False
+    !sd "18": True
+    !sd "21": False
+
+holder_disclosed_claims:
+  is_over:
+    "21": False
+
+expect_verified_user_claims:
+  is_over: {}
+  
+    

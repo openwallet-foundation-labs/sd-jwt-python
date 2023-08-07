@@ -1,0 +1,88 @@
+user_claims:
+  sub: john_doe_42
+
+  # Make only first two elements SD - this array will have three elements in the resulting SD-JWT, first two hidden
+  nationalities:
+    - !sd "US"
+    - !sd "CA"
+    - "DE"
+
+  # Make all elements SD
+  is_over:
+    !sd "13": True
+    !sd "18": False
+    !sd "21": False
+
+  # Make only last element SD
+  addresses:
+    - {
+        street: "123 Main St",
+        city: "Anytown",
+        state: "NY",
+        zip: "12345",
+        "type": "main_address",
+      }
+    - !sd {
+        street: "456 Main St",
+        city: "Anytown",
+        state: "NY",
+        zip: "12345",
+        "type": "secondary_address",
+      }
+
+  # Test what happens with existing null values that are being SD'd
+  null_values:
+    - null
+    - !sd null
+    - !sd null
+    - null
+
+  data_types:
+    - !sd null
+    - !sd 42
+    - !sd 3.14
+    - !sd "foo"
+    - !sd True
+    - !sd ["Test"]
+    - !sd { "foo": "bar" }
+
+  # What happens with SD arrays in SD arrays?
+  nested_array: [[!sd "foo", !sd "bar"], [!sd "baz", !sd "qux"]]
+
+  array_with_recursive_sd:
+    - boring
+    - !sd
+      foo: "bar"
+      !sd baz:
+        qux: "quux"
+    - [!sd "foo", !sd "bar"]
+
+  !sd sd_array:
+    - 32
+    - 23
+
+holder_disclosed_claims:
+  sub: null
+  nationalities:
+    - False
+    - True
+
+  is_over:
+    "13": False
+    "18": True
+    "21": False
+
+  addresses: []
+
+  data_types:
+    - True
+    - True
+    - True
+    - True
+    - True
+    - True
+    - True
+
+  nested_array: [[True, False], [False, True]]
+
+key_binding: True

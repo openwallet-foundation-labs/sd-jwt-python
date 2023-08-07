@@ -1,0 +1,73 @@
+user_claims:
+  foo:
+    - !sd one
+    - !sd two
+
+  bar:
+    !sd red: 1
+    !sd green: 2
+
+  qux:
+    - !sd
+      - !sd blue
+      - !sd yellow
+
+  baz:
+    - !sd
+      - !sd orange
+      - !sd purple
+    - !sd
+      - !sd black
+      - !sd white
+
+  animals:
+    !sd snake:
+      !sd name: python
+      !sd age: 10
+    !sd bird:
+      !sd name: eagle
+      !sd age: 20
+
+holder_disclosed_claims:
+  foo:
+    - False
+    - True
+
+  bar:
+    red: False
+    green: True
+
+  qux:
+    - [False, True]
+
+  baz:
+    - [False, True]
+    - [True, True]
+
+  animals:
+    snake:
+      name: False
+      age: True
+    bird:
+      name: False
+      age: True
+
+expect_verified_user_claims:
+  foo:
+    - two
+
+  bar:
+    green: 2
+
+  qux: 
+    - [yellow]
+
+  baz:
+    - [purple]
+    - [black, white]
+
+  animals:
+    snake:
+      age: 10
+    bird:
+      age: 20

@@ -1,0 +1,42 @@
+user_claims:
+  addresses:
+    - street: "123 Main St"
+      city: "Anytown"
+      state: "NY"
+      zip: "12345"
+      type: "main_address"
+
+    - !sd
+      street: "456 Main St"
+      city: "Anytown"
+      state: "NY"
+      zip: "12345"
+      type: "secondary_address"
+
+  array_with_one_sd_object:
+    - !sd foo: "bar"
+
+holder_disclosed_claims:
+  addresses:
+    - null
+    - True
+  
+  array_with_one_sd_object:
+    - foo: True
+
+expect_verified_user_claims:
+  addresses:
+    - street: "123 Main St"
+      city: "Anytown"
+      state: "NY"
+      zip: "12345"
+      type: "main_address"
+
+    - street: "456 Main St"
+      city: "Anytown"
+      state: "NY"
+      zip: "12345"
+      type: "secondary_address"
+  
+  array_with_one_sd_object:
+    - foo: "bar"
