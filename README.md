@@ -27,7 +27,7 @@ source venv/bin/activate
 
 ## sd-jwt-generate
 
-The script `sd-jwt-generate` is suitable for generating test cases, as they could be for do some interop tests with other SD-JWT implementations, and for generating the examples in the SD-JWT specification and other documents.
+The script `sd-jwt-generate` is useful for generating test cases, as they might be for doing interoperability tests with other SD-JWT implementations, and for generating examples in the SD-JWT specification and other documents.
 
 For both use cases, the script expects a JSON file with settings (`settings.yml`). Examples for these files can be found in the [tests/testcases](tests/testcases) and [examples](examples) directories.
 
