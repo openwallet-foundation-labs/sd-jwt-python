@@ -4,7 +4,6 @@ from .common import (
     DIGEST_ALG_KEY,
     SD_DIGESTS_KEY,
     SD_LIST_PREFIX,
-    KB_DIGEST_KEY,
 )
 
 from json import dumps, loads
@@ -73,13 +72,10 @@ class SDJWTVerifier(SDJWTCommon):
         expected_nonce: Union[str, None] = None,
         sign_alg: Union[str, None] = None,
     ):
-
-        # Deserialized the key binding JWT
         _alg = sign_alg or DEFAULT_SIGNING_ALG
         parsed_input_key_binding_jwt = JWS()
         parsed_input_key_binding_jwt.deserialize(self._unverified_input_key_binding_jwt)
 
-        # Verify the key binding JWT using the holder public key
         if not self._holder_public_key_payload:
             raise ValueError("No holder public key in SD-JWT")
 
@@ -95,31 +91,17 @@ class SDJWTVerifier(SDJWTCommon):
 
         parsed_input_key_binding_jwt.verify(pubkey, alg=_alg)
 
-        # Check header typ
         key_binding_jwt_header = parsed_input_key_binding_jwt.jose_header
 
         if key_binding_jwt_header["typ"] != self.KB_JWT_TYP_HEADER:
             raise ValueError("Invalid header typ")
 
-        # Check payload
         key_binding_jwt_payload = loads(parsed_input_key_binding_jwt.payload)
 
         if key_binding_jwt_payload["aud"] != expected_aud:
-            raise ValueError("Invalid audience in KB-JWT")
+            raise ValueError("Invalid audience")
         if key_binding_jwt_payload["nonce"] != expected_nonce:
-            raise ValueError("Invalid nonce in KB-JWT")
-
-        # Reassemble the SD-JWT in compact format and check digest
-        if self._serialization_format == "compact":
-            string_to_hash = self._combine(
-                        self._unverified_input_sd_jwt,
-                        *self._input_disclosures,
-                        ""
-            )
-            expected_sd_jwt_presentation_hash = self._b64hash(string_to_hash.encode("ascii"))
-
-            if key_binding_jwt_payload[KB_DIGEST_KEY] != expected_sd_jwt_presentation_hash:
-                raise ValueError("Invalid digest in KB-JWT")
+            raise ValueError("Invalid nonce")
 
     def _extract_sd_claims(self):
         if DIGEST_ALG_KEY in self._sd_jwt_payload:

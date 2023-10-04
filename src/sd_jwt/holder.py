@@ -1,4 +1,4 @@
-from .common import SDJWTCommon, DEFAULT_SIGNING_ALG, SD_DIGESTS_KEY, SD_LIST_PREFIX, KB_DIGEST_KEY
+from .common import SDJWTCommon, DEFAULT_SIGNING_ALG, SD_DIGESTS_KEY, SD_LIST_PREFIX
 from json import dumps, loads
 from time import time
 from typing import Dict, List, Optional
@@ -42,17 +42,10 @@ class SDJWTHolder(SDJWTCommon):
 
         # Optional: Create a key binding JWT
         if nonce and aud and holder_key:
-            # Temporarily create the combined presentation in order to create the hash over it
-            string_to_hash = self._combine(
-                    self.serialized_sd_jwt,
-                    *self.hs_disclosures,
-                    ""
-                )
-            sd_jwt_presentation_hash = self._b64hash(string_to_hash.encode("ascii"))
-            self._create_key_binding_jwt(nonce, aud, sd_jwt_presentation_hash, holder_key, sign_alg)
-
+            self._create_key_binding_jwt(nonce, aud, holder_key, sign_alg)
 
         # Create the combined presentation
+
         if self._serialization_format == "compact":
             # Note: If the key binding JWT is not created, then the
             # last element is empty, matching the spec.
@@ -201,7 +194,7 @@ class SDJWTHolder(SDJWTCommon):
                 self._select_disclosures(value, claims_to_disclose.get(key, None))
 
     def _create_key_binding_jwt(
-        self, nonce, aud, presentation_hash, holder_key, sign_alg: Optional[str] = None
+        self, nonce, aud, holder_key, sign_alg: Optional[str] = None
     ):
         _alg = sign_alg or DEFAULT_SIGNING_ALG
 
@@ -214,7 +207,6 @@ class SDJWTHolder(SDJWTCommon):
             "nonce": nonce,
             "aud": aud,
             "iat": int(time()),
-            KB_DIGEST_KEY: presentation_hash,
         }
 
         # Sign the SD-JWT-Release using the holder's key
