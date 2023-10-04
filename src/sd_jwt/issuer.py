@@ -198,6 +198,6 @@ class SDJWTIssuer(SDJWTCommon):
             self.sd_jwt_issuance = self._combine(
                 self.serialized_sd_jwt, *(d.b64 for d in self.ii_disclosures)
             )
-            self.sd_jwt_issuance += self.COMBINED_serialization_FORMAT_SEPARATOR
+            self.sd_jwt_issuance += self.COMBINED_SERIALIZATION_FORMAT_SEPARATOR
         else:
             self.sd_jwt_issuance = self.serialized_sd_jwt
