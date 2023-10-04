@@ -22,7 +22,7 @@ class SDJWTVerifier(SDJWTCommon):
     def __init__(
         self,
         sd_jwt_presentation: str,
-        cb_get_issuer_key: Callable[[str], str],
+        cb_get_issuer_key: Callable[[str, Dict], str],
         expected_aud: Union[str, None] = None,
         expected_nonce: Union[str, None] = None,
         serialization_format: str = "compact",
@@ -58,7 +58,8 @@ class SDJWTVerifier(SDJWTCommon):
         parsed_input_sd_jwt.deserialize(self._unverified_input_sd_jwt)
 
         unverified_issuer = self._unverified_input_sd_jwt_payload.get("iss", None)
-        issuer_public_key = cb_get_issuer_key(unverified_issuer)
+        unverified_header_parameters = parsed_input_sd_jwt.jose_header
+        issuer_public_key = cb_get_issuer_key(unverified_issuer, unverified_header_parameters)
         parsed_input_sd_jwt.verify(issuer_public_key, alg=sign_alg)
 
         self._sd_jwt_payload = loads(parsed_input_sd_jwt.payload.decode("utf-8"))

@@ -39,6 +39,7 @@ def generate_test_case_data(settings: Dict, testcase_path: Path, type: str):
     use_decoys = testcase.get("add_decoy_claims", False)
     serialization_format = testcase.get("serialization_format", "compact")
     include_default_claims = testcase.get("include_default_claims", True)
+    extra_header_parameters = testcase.get("extra_header_parameters", None)
 
     claims = {}
     if include_default_claims:
@@ -58,6 +59,7 @@ def generate_test_case_data(settings: Dict, testcase_path: Path, type: str):
         demo_keys["holder_key"] if testcase.get("key_binding", False) else None,
         add_decoy_claims=use_decoys,
         serialization_format=serialization_format,
+        extra_header_parameters=extra_header_parameters,
     )
 
     ### Produce SD-JWT-R for selected example
@@ -81,7 +83,7 @@ def generate_test_case_data(settings: Dict, testcase_path: Path, type: str):
 
     # Define a function to check the issuer and retrieve the
     # matching public key
-    def cb_get_issuer_key(issuer):
+    def cb_get_issuer_key(issuer, header_parameters):
         # Do not use in production - this allows to use any issuer name for demo purposes
         if issuer == claims.get("iss", None):
             return demo_keys["issuer_public_key"]

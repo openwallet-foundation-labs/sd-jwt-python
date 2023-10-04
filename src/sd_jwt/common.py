@@ -34,7 +34,7 @@ class SDJWTHasSDClaimException(Exception):
 
 
 class SDJWTCommon:
-    SD_JWT_HEADER = None  # "sd+jwt"
+    SD_JWT_TYP_HEADER = None  # "sd+jwt"
     KB_JWT_TYP_HEADER = "kb+jwt"
     JWS_KEY_DISCLOSURES = "disclosures"
     JWS_KEY_KB_JWT = "kb_jwt"

@@ -36,6 +36,7 @@ class SDJWTIssuer(SDJWTCommon):
         sign_alg=None,
         add_decoy_claims: bool = False,
         serialization_format: str = "compact",
+        extra_header_parameters: Dict = None,
     ):
         super().__init__(serialization_format=serialization_format)
 
@@ -44,6 +45,7 @@ class SDJWTIssuer(SDJWTCommon):
         self._holder_key = holder_key
         self._sign_alg = sign_alg or DEFAULT_SIGNING_ALG
         self._add_decoy_claims = add_decoy_claims
+        self._extra_header_parameters = extra_header_parameters
 
         self.ii_disclosures = []
         self.decoy_digests = []
@@ -168,8 +170,10 @@ class SDJWTIssuer(SDJWTCommon):
 
         # Assemble protected headers
         _protected_headers = {"alg": self._sign_alg}
-        if self.SD_JWT_HEADER:
-            _protected_headers["typ"] = self.SD_JWT_HEADER
+        if self.SD_JWT_TYP_HEADER:
+            _protected_headers["typ"] = self.SD_JWT_TYP_HEADER
+        if self._extra_header_parameters:
+            _protected_headers.update(self._extra_header_parameters)
 
         self.sd_jwt.add_signature(
             self._issuer_key,

@@ -10,6 +10,7 @@ def test_e2e(testcase, settings):
     demo_keys = get_jwk(settings["key_settings"], True, seed)
     use_decoys = testcase.get("add_decoy_claims", False)
     serialization_format = testcase.get("serialization_format", "compact")
+    extra_header_parameters = testcase.get("extra_header_parameters", None)
 
     # Issuer: Produce SD-JWT and issuance format for selected example
 
@@ -23,6 +24,7 @@ def test_e2e(testcase, settings):
         demo_keys["holder_key"] if testcase.get("key_binding", False) else None,
         add_decoy_claims=use_decoys,
         serialization_format=serialization_format,
+        extra_header_parameters=extra_header_parameters,
     )
 
     output_issuance = sdjwt_at_issuer.sd_jwt_issuance
@@ -32,8 +34,11 @@ def test_e2e(testcase, settings):
     output_holder = output_issuance
 
     # Verifier
-    def cb_get_issuer_key(issuer):
+    sdjwt_header_parameters = {}
+    def cb_get_issuer_key(issuer, header_parameters):
+        sdjwt_header_parameters.update(header_parameters)
         return demo_keys["issuer_public_key"]
+
 
     sdjwt_at_verifier = SDJWTVerifier(
         output_holder,
@@ -52,3 +57,10 @@ def test_e2e(testcase, settings):
         expected_claims["cnf"] = {"jwk": demo_keys["holder_key"].export_public(as_dict=True)}
 
     assert verified == expected_claims
+
+    expected_header_parameters = {
+        "alg": testcase.get("sign_alg", "ES256")
+    }
+    expected_header_parameters.update(extra_header_parameters or {})
+
+    assert sdjwt_header_parameters == expected_header_parameters
