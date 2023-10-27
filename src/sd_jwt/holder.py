@@ -1,3 +1,5 @@
+import logging 
+
 from .common import SDJWTCommon, DEFAULT_SIGNING_ALG, SD_DIGESTS_KEY, SD_LIST_PREFIX
 from json import dumps, loads
 from time import time
@@ -5,6 +7,8 @@ from typing import Dict, List, Optional
 from itertools import zip_longest
 
 from jwcrypto.jws import JWS
+
+logger = logging.getLogger("sd_jwt")
 
 
 class SDJWTHolder(SDJWTCommon):
@@ -94,7 +98,7 @@ class SDJWTHolder(SDJWTCommon):
             zip_longest(claims_to_disclose, sd_jwt_claims, fillvalue=None)
         ):
             if (
-                type(element) is dict
+                isinstance(element, dict)
                 and len(element) == 1
                 and SD_LIST_PREFIX in element
                 and type(element[SD_LIST_PREFIX]) is str
@@ -116,11 +120,11 @@ class SDJWTHolder(SDJWTCommon):
                     continue
 
                 self.hs_disclosures.append(self._hash_to_disclosure[digest_to_check])
-                if type(disclosure_value) is dict:
+                if isinstance(disclosure_value, dict):
                     if claims_to_disclose_element is True:
                         # Tolerate a "True" for a disclosure of an object
                         claims_to_disclose_element = {}
-                    if not type(claims_to_disclose_element) is dict:
+                    if not isinstance(claims_to_disclose_element, dict):
                         raise ValueError(
                             f"To disclose object elements in arrays, provide an object (can be empty).\n"
                             f"Found {claims_to_disclose_element} instead.\n"
@@ -130,11 +134,11 @@ class SDJWTHolder(SDJWTCommon):
                     self._select_disclosures(
                         disclosure_value, claims_to_disclose_element
                     )
-                elif type(disclosure_value) is list:
+                elif isinstance(disclosure_value, list):
                     if claims_to_disclose_element is True:
                         # Tolerate a "True" for a disclosure of an array
                         claims_to_disclose_element = []
-                    if not type(claims_to_disclose_element) is list:
+                    if not isinstance(claims_to_disclose_element, list):
                         raise ValueError(
                             f"To disclose array elements nested in arrays, provide an array (can be empty).\n"
                             f"Found {claims_to_disclose_element} instead.\n"
@@ -155,7 +159,7 @@ class SDJWTHolder(SDJWTCommon):
         if claims_to_disclose is True:
             # Tolerate a "True" for a disclosure of an object
             claims_to_disclose = {}
-        if not type(claims_to_disclose) is dict:
+        if not isinstance(claims_to_disclose, dict):
             raise ValueError(
                 f"To disclose object elements, an object must be provided as disclosure information.\n"
                 f"Found {claims_to_disclose} (type {type(claims_to_disclose)}) instead.\n"
@@ -170,16 +174,16 @@ class SDJWTHolder(SDJWTCommon):
                     _, key, value = self._hash_to_decoded_disclosure[digest_to_check]
 
                     try:
-                        print(
+                        logger.debug(
                             f"In _select_disclosures_dict: {key}, {value}, {claims_to_disclose}"
                         )
                         if key in claims_to_disclose and claims_to_disclose[key]:
-                            print(f"Adding disclosure for {digest_to_check}")
+                            logger.debug(f"Adding disclosure for {digest_to_check}")
                             self.hs_disclosures.append(
                                 self._hash_to_disclosure[digest_to_check]
                             )
                         else:
-                            print(
+                            logger.debug(
                                 f"Not adding disclosure for {digest_to_check}, {key} (type {type(key)}) not in {claims_to_disclose}"
                             )
                     except TypeError:
