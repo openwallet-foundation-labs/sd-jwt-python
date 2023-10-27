@@ -8,7 +8,7 @@ import sys
 from jwcrypto.jwk import JWK
 from typing import Union
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sd_jwt")
 
 
 def load_yaml_settings(file):

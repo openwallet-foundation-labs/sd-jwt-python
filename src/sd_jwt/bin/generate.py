@@ -39,7 +39,7 @@ def generate_test_case_data(settings: Dict, testcase_path: Path, type: str):
     use_decoys = testcase.get("add_decoy_claims", False)
     serialization_format = testcase.get("serialization_format", "compact")
     include_default_claims = testcase.get("include_default_claims", True)
-    extra_header_parameters = testcase.get("extra_header_parameters", None)
+    extra_header_parameters = testcase.get("extra_header_parameters", {})
 
     claims = {}
     if include_default_claims:

@@ -26,7 +26,7 @@ def textwrap_json(data, width=EXAMPLE_MAX_WIDTH):
         else:
             # Check if line is of the form "key": "value"
             if not line.strip().startswith('"'):
-                print("WARNING: unexpected line " + line)
+                logger.warning("unexpected line " + line)
                 output.append(line)
                 continue
             # Determine number of spaces before the value
