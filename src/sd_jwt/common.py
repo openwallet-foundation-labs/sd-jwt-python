@@ -1,5 +1,8 @@
+import logging
+import os
 import random
 import secrets
+
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from dataclasses import dataclass
 from hashlib import sha256
@@ -10,6 +13,8 @@ DEFAULT_SIGNING_ALG = "ES256"
 SD_DIGESTS_KEY = "_sd"
 DIGEST_ALG_KEY = "_sd_alg"
 SD_LIST_PREFIX = "..."
+
+logger = logging.getLogger("sd_jwt")
 
 
 @dataclass
@@ -33,7 +38,7 @@ class SDJWTHasSDClaimException(Exception):
 
 
 class SDJWTCommon:
-    SD_JWT_TYP_HEADER = None  # "sd+jwt"
+    SD_JWT_HEADER = os.getenv("SD_JWT_HEADER", "example+sd-jwt") # overwriteable with extra_header_parameters = {"typ": "other-example+sd-jwt"}
     KB_JWT_TYP_HEADER = "kb+jwt"
     JWS_KEY_DISCLOSURES = "disclosures"
     JWS_KEY_KB_JWT = "kb_jwt"
@@ -71,8 +76,8 @@ class SDJWTCommon:
         if self.unsafe_randomness:
             # This is not cryptographically secure, but it is deterministic
             # and allows for repeatable output for the generation of the examples.
-            print(
-                "WARNING: Using unsafe randomness - output is not suitable for production use!"
+            logger.warning(
+                "Using unsafe randomness is not suitable for production use."
             )
             return self._base64url_encode(
                 bytes(random.getrandbits(8) for _ in range(16))
@@ -91,14 +96,14 @@ class SDJWTCommon:
             decoded_disclosure = loads(
                 self._base64url_decode(disclosure).decode("utf-8")
             )
-            hash = self._b64hash(disclosure.encode("ascii"))
-            if hash in self._hash_to_decoded_disclosure:
+            _hash = self._b64hash(disclosure.encode("ascii"))
+            if _hash in self._hash_to_decoded_disclosure:
                 raise ValueError(
-                    f"Duplicate disclosure hash {hash} for disclosure {decoded_disclosure}"
+                    f"Duplicate disclosure hash {_hash} for disclosure {decoded_disclosure}"
                 )
 
-            self._hash_to_decoded_disclosure[hash] = decoded_disclosure
-            self._hash_to_disclosure[hash] = disclosure
+            self._hash_to_decoded_disclosure[_hash] = decoded_disclosure
+            self._hash_to_disclosure[_hash] = disclosure
 
     def _check_for_sd_claim(self, the_object):
         # Recursively check for the presence of the _sd claim, also
@@ -121,7 +126,7 @@ class SDJWTCommon:
             (
                 self._unverified_input_sd_jwt,
                 *self._input_disclosures,
-                self._unverified_input_key_binding_jwt,
+                self._unverified_input_key_binding_jwt
             ) = self._split(sd_jwt)
 
             # Extract only the body from SD-JWT without verifying the signature

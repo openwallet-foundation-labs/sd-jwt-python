@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sd-jwt"
-version = "0.9.1"
+version = "0.10.0"
 description = "The reference implementation of the IETF SD-JWT specification."
 authors = ["Daniel Fett <mail@danielfett.de>"]
 readme = "README.md"

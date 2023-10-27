@@ -10,7 +10,9 @@ def test_e2e(testcase, settings):
     demo_keys = get_jwk(settings["key_settings"], True, seed)
     use_decoys = testcase.get("add_decoy_claims", False)
     serialization_format = testcase.get("serialization_format", "compact")
-    extra_header_parameters = testcase.get("extra_header_parameters", None)
+    
+    extra_header_parameters = {"typ": "testcase+sd-jwt"}
+    extra_header_parameters.update(testcase.get("extra_header_parameters", {}))
 
     # Issuer: Produce SD-JWT and issuance format for selected example
 
@@ -74,8 +76,9 @@ def test_e2e(testcase, settings):
     assert verified == expected_claims
     
     expected_header_parameters = {
-        "alg": testcase.get("sign_alg", "ES256")
+        "alg": testcase.get("sign_alg", "ES256"),
+        "typ": "testcase+sd-jwt"
     }
-    expected_header_parameters.update(extra_header_parameters or {})
+    expected_header_parameters.update(extra_header_parameters)
 
     assert sdjwt_header_parameters == expected_header_parameters
