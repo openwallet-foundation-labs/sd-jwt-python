@@ -12,6 +12,7 @@ from typing import List
 DEFAULT_SIGNING_ALG = "ES256"
 SD_DIGESTS_KEY = "_sd"
 DIGEST_ALG_KEY = "_sd_alg"
+KB_DIGEST_KEY = "_sd_hash"
 SD_LIST_PREFIX = "..."
 
 logger = logging.getLogger("sd_jwt")
@@ -44,7 +45,7 @@ class SDJWTCommon:
     JWS_KEY_KB_JWT = "kb_jwt"
     HASH_ALG = {"name": "sha-256", "fn": sha256}
 
-    COMBINED_serialization_FORMAT_SEPARATOR = "~"
+    COMBINED_SERIALIZATION_FORMAT_SEPARATOR = "~"
 
     unsafe_randomness = False
 
@@ -58,10 +59,10 @@ class SDJWTCommon:
         return self._base64url_encode(self.HASH_ALG["fn"](raw).digest())
 
     def _combine(self, *parts):
-        return self.COMBINED_serialization_FORMAT_SEPARATOR.join(parts)
+        return self.COMBINED_SERIALIZATION_FORMAT_SEPARATOR.join(parts)
 
     def _split(self, combined):
-        return combined.split(self.COMBINED_serialization_FORMAT_SEPARATOR)
+        return combined.split(self.COMBINED_SERIALIZATION_FORMAT_SEPARATOR)
 
     @staticmethod
     def _base64url_encode(data: bytes) -> str:
