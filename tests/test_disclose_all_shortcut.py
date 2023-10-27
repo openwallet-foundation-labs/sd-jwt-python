@@ -65,6 +65,6 @@ def test_e2e(testcase, settings):
         "alg": testcase.get("sign_alg", "ES256"),
         "typ": "testcase+sd-jwt"
     }
-    expected_header_parameters.update(extra_header_parameters or {})
+    expected_header_parameters.update(extra_header_parameters)
 
     assert sdjwt_header_parameters == expected_header_parameters

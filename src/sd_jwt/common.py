@@ -1,6 +1,8 @@
 import logging
+import os
 import random
 import secrets
+
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from dataclasses import dataclass
 from hashlib import sha256
@@ -36,7 +38,7 @@ class SDJWTHasSDClaimException(Exception):
 
 
 class SDJWTCommon:
-    SD_JWT_HEADER = None # overwriteable with extra_header_parameters = {"typ": "other-example+sd-jwt"}
+    SD_JWT_HEADER = os.getenv("SD_JWT_HEADER", "example+sd-jwt") # overwriteable with extra_header_parameters = {"typ": "other-example+sd-jwt"}
     KB_JWT_TYP_HEADER = "kb+jwt"
     JWS_KEY_DISCLOSURES = "disclosures"
     JWS_KEY_KB_JWT = "kb_jwt"
@@ -124,7 +126,7 @@ class SDJWTCommon:
             (
                 self._unverified_input_sd_jwt,
                 *self._input_disclosures,
-                self._unverified_input_key_binding_jwt,
+                self._unverified_input_key_binding_jwt
             ) = self._split(sd_jwt)
 
             # Extract only the body from SD-JWT without verifying the signature
