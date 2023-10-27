@@ -1,6 +1,12 @@
 import logging 
 
-from .common import SDJWTCommon, DEFAULT_SIGNING_ALG, SD_DIGESTS_KEY, SD_LIST_PREFIX, KB_DIGEST_KEY
+from .common import (
+    SDJWTCommon, 
+    DEFAULT_SIGNING_ALG, 
+    SD_DIGESTS_KEY, 
+    SD_LIST_PREFIX, 
+    KB_DIGEST_KEY
+)
 from json import dumps, loads
 from time import time
 from typing import Dict, List, Optional
