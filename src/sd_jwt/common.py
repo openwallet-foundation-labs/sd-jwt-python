@@ -12,7 +12,7 @@ from typing import List
 DEFAULT_SIGNING_ALG = "ES256"
 SD_DIGESTS_KEY = "_sd"
 DIGEST_ALG_KEY = "_sd_alg"
-KB_DIGEST_KEY = "_sd_hash"
+KB_DIGEST_KEY = "sd_hash"
 SD_LIST_PREFIX = "..."
 
 logger = logging.getLogger("sd_jwt")
