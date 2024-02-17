@@ -112,9 +112,9 @@ class SDJWTVerifier(SDJWTCommon):
         # Reassemble the SD-JWT in compact format and check digest
         if self._serialization_format == "compact":
             string_to_hash = self._combine(
-                        self._unverified_input_sd_jwt,
-                        *self._input_disclosures,
-                        ""
+                self._unverified_input_sd_jwt,
+                *self._input_disclosures,
+                ""
             )
             expected_sd_jwt_presentation_hash = self._b64hash(string_to_hash.encode("ascii"))
 

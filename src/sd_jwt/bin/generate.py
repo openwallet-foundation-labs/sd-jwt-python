@@ -7,8 +7,10 @@ library that affect the test cases.
 
 
 import argparse
+import datetime
 import logging
 import sys
+
 from typing import Dict
 from pathlib import Path
 
@@ -29,6 +31,19 @@ logger = logging.getLogger("sd_jwt")
 # Set logging to stdout
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
+def get_value_from_disclosables(attr_name, testcase):
+    _res = None
+    try:
+        _res = testcase['user_claims'][
+            [
+                k for k,v in testcase['user_claims'].items()
+                if hasattr(k, "value") and k.value == attr_name
+            ][0]
+        ]
+    except IndexError:
+        pass
+
+    return _res
 
 def generate_test_case_data(settings: Dict, testcase_path: Path, type: str):
     seed = settings["random_seed"]
@@ -42,12 +57,22 @@ def generate_test_case_data(settings: Dict, testcase_path: Path, type: str):
     extra_header_parameters = testcase.get("extra_header_parameters", {})
 
     claims = {}
+
+    _iat = get_value_from_disclosables("iat", testcase)
+
+    iat = _iat or settings.get("iat", int(datetime.datetime.utcnow().timestamp()))
+    exp = iat + (settings.get("exp_delta_seconds", 60) * 60)
+    
     if include_default_claims:
         claims = {
             "iss": settings["identifiers"]["issuer"],
-            "iat": settings["iat"],
-            "exp": settings["exp"],
+            "exp": settings.get("exp", exp)
         }
+    else:
+        claims = dict()
+
+    if not _iat:
+        claims['iat'] = iat
 
     claims.update(testcase["user_claims"])
 
