@@ -27,5 +27,7 @@ expiry_seconds: 86400000  # 1000 days
 
 random_seed: 0
 
+exp_delta_seconds: 60
+
 iat: 1683000000  # Tue May 02 2023 04:00:00 GMT+0000
 exp: 1883000000  # Sat Sep 01 2029 23:33:20 GMT+0000

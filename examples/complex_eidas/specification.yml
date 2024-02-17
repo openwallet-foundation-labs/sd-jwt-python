@@ -1,4 +1,5 @@
 user_claims:
+  !sd iat: 11
   verified_claims:
     verification:
       trust_framework: eidas
@@ -33,5 +34,5 @@ holder_disclosed_claims:
       {
         "verification": { "evidence": [] },
         "claims": { "gender": null, "place_of_birth": { "country": null } },
-      },
+      }
   }
