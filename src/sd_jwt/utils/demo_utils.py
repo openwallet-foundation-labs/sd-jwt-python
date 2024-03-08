@@ -5,7 +5,7 @@ import random
 import yaml
 import sys
 
-from jwcrypto.jwk import JWK
+from jwcrypto.jwk import JWK, JWKSet
 from typing import Union
 
 logger = logging.getLogger("sd_jwt")
@@ -44,7 +44,7 @@ def print_decoded_repr(value: str, nlines=2):
 def get_jwk(jwk_kwargs: dict = {}, no_randomness: bool = False, random_seed: int = 0):
     """
     jwk_kwargs = {
-        issuer_key:dict : {},
+        issuer_keys:list : [{}],
         holder_key:dict : {},
         key_size: int : 0,
         kty: str : "RSA"
@@ -54,17 +54,23 @@ def get_jwk(jwk_kwargs: dict = {}, no_randomness: bool = False, random_seed: int
     """
     if no_randomness:
         random.seed(random_seed)
-        issuer_key = JWK.from_json(json.dumps(jwk_kwargs["issuer_key"]))
+        issuer_keys = [JWK.from_json(json.dumps(k)) for k in jwk_kwargs["issuer_keys"]]
         holder_key = JWK.from_json(json.dumps(jwk_kwargs["holder_key"]))
         logger.warning("Using fixed randomness for demo purposes")
     else:
         _kwargs = {"key_size": jwk_kwargs["key_size"], "kty": jwk_kwargs["kty"]}
-        issuer_key = JWK.generate(**_kwargs)
+        issuer_keys = [JWK.generate(**_kwargs)]
         holder_key = JWK.generate(**_kwargs)
 
-    issuer_public_key = JWK.from_json(issuer_key.export_public())
+    if len(issuer_keys) > 1:
+        issuer_public_keys = JWKSet()
+        for k in issuer_keys:
+            issuer_public_keys.add(JWK.from_json(k.export_public()))
+    else:
+        issuer_public_keys = JWK.from_json(issuer_keys[0].export_public())
+
     return dict(
-        issuer_key=issuer_key,
+        issuer_keys=issuer_keys,
         holder_key=holder_key,
-        issuer_public_key=issuer_public_key,
+        issuer_public_keys=issuer_public_keys,
     )

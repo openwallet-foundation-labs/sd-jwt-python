@@ -14,6 +14,8 @@ SD_DIGESTS_KEY = "_sd"
 DIGEST_ALG_KEY = "_sd_alg"
 KB_DIGEST_KEY = "sd_hash"
 SD_LIST_PREFIX = "..."
+JSON_SER_DISCLOSURE_KEY = "disclosures"
+JSON_SER_KB_JWT_KEY = "kb_jwt"
 
 logger = logging.getLogger("sd_jwt")
 
@@ -39,10 +41,10 @@ class SDJWTHasSDClaimException(Exception):
 
 
 class SDJWTCommon:
-    SD_JWT_HEADER = os.getenv("SD_JWT_HEADER", "example+sd-jwt") # overwriteable with extra_header_parameters = {"typ": "other-example+sd-jwt"}
+    SD_JWT_HEADER = os.getenv(
+        "SD_JWT_HEADER", "example+sd-jwt"
+    )  # overwriteable with extra_header_parameters = {"typ": "other-example+sd-jwt"}
     KB_JWT_TYP_HEADER = "kb+jwt"
-    JWS_KEY_DISCLOSURES = "disclosures"
-    JWS_KEY_KB_JWT = "kb_jwt"
     HASH_ALG = {"name": "sha-256", "fn": sha256}
 
     COMBINED_SERIALIZATION_FORMAT_SEPARATOR = "~"
@@ -122,12 +124,11 @@ class SDJWTCommon:
             return
 
     def _parse_sd_jwt(self, sd_jwt):
-
         if self._serialization_format == "compact":
             (
                 self._unverified_input_sd_jwt,
                 *self._input_disclosures,
-                self._unverified_input_key_binding_jwt
+                self._unverified_input_key_binding_jwt,
             ) = self._split(sd_jwt)
 
             # Extract only the body from SD-JWT without verifying the signature
@@ -135,17 +136,69 @@ class SDJWTCommon:
             self._unverified_input_sd_jwt_payload = loads(
                 self._base64url_decode(jwt_body)
             )
+            self._unverified_compact_serialized_input_sd_jwt = (
+                self._unverified_input_sd_jwt
+            )
 
         else:
             # if the SD-JWT is in JSON format, parse the json and extract the disclosures.
             self._unverified_input_sd_jwt = sd_jwt
             self._unverified_input_sd_jwt_parsed = loads(sd_jwt)
-            self._input_disclosures = self._unverified_input_sd_jwt_parsed[
-                self.JWS_KEY_DISCLOSURES
-            ]
-            self._unverified_input_key_binding_jwt = (
-                self._unverified_input_sd_jwt_parsed.get(self.JWS_KEY_KB_JWT, "")
-            )
+
             self._unverified_input_sd_jwt_payload = loads(
                 self._base64url_decode(self._unverified_input_sd_jwt_parsed["payload"])
             )
+
+            # distinguish between flattened and general JSON serialization (RFC7515)
+            if "signature" in self._unverified_input_sd_jwt_parsed:
+                # flattened
+                self._input_disclosures = self._unverified_input_sd_jwt_parsed[
+                    "header"
+                ][JSON_SER_DISCLOSURE_KEY]
+                self._unverified_input_key_binding_jwt = (
+                    self._unverified_input_sd_jwt_parsed["header"].get(
+                        JSON_SER_KB_JWT_KEY, ""
+                    )
+                )
+                self._unverified_compact_serialized_input_sd_jwt = ".".join(
+                    [
+                        self._unverified_input_sd_jwt_parsed["protected"],
+                        self._unverified_input_sd_jwt_parsed["payload"],
+                        self._unverified_input_sd_jwt_parsed["signature"],
+                    ]
+                )
+
+            elif "signatures" in self._unverified_input_sd_jwt_parsed:
+                # general, look at the header in the first signature
+                self._input_disclosures = self._unverified_input_sd_jwt_parsed[
+                    "signatures"
+                ][0]["header"][JSON_SER_DISCLOSURE_KEY]
+                self._unverified_input_key_binding_jwt = (
+                    self._unverified_input_sd_jwt_parsed["signatures"][0]["header"].get(
+                        JSON_SER_KB_JWT_KEY, ""
+                    )
+                )
+                self._unverified_compact_serialized_input_sd_jwt = ".".join(
+                    [
+                        self._unverified_input_sd_jwt_parsed["signatures"][0][
+                            "protected"
+                        ],
+                        self._unverified_input_sd_jwt_parsed["payload"],
+                        self._unverified_input_sd_jwt_parsed["signatures"][0][
+                            "signature"
+                        ],
+                    ]
+                )
+
+            else:
+                raise ValueError("Invalid JSON serialization of SD-JWT")
+
+    def _calculate_kb_hash(self, disclosures):
+        # Temporarily create the combined presentation in order to create the hash over it
+        # Note: For JSON Serialization, the compact representation of the SD-JWT is restored from the parsed JSON (see common.py)
+        string_to_hash = self._combine(
+            self._unverified_compact_serialized_input_sd_jwt,
+            *disclosures,
+            "",
+        )
+        return self._b64hash(string_to_hash.encode("ascii"))
