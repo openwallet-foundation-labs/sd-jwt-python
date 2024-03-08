@@ -28,3 +28,12 @@ expect_verified_user_claims:
 key_binding: True
 
 serialization_format: json
+
+settings_override:
+    issuer_keys:
+        - kty: EC
+          d: Ur2bNKuBPOrAaxsRnbSH6hIhmNTxSGXshDSUD1a1y7g
+          crv: P-256
+          x: b28d4MwZMjw8-00CG4xfnn9SLMVMM19SlqZpVb_uNtQ
+          y: Xv5zWwuoaTgdS6hV43yI6gBwTnjukmFQQnJ_kCxzqk8
+          kid: "issuer-key-1"

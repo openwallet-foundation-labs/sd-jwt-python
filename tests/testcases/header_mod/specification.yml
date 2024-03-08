@@ -22,7 +22,7 @@ extra_header_parameters:
 expect_verified_user_claims:
   given_name: John
   family_name: Doe
-  address: 
+  address:
     street_address: 123 Main St
     locality: Anytown
     region: Anystate

@@ -31,15 +31,22 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 
 def generate_test_case_data(settings: Dict, testcase_path: Path, type: str):
-    seed = settings["random_seed"]
-    demo_keys = get_jwk(settings["key_settings"], True, seed)
-
     ### Load test case data
     testcase = load_yaml_specification(testcase_path)
+    settings = {
+        **settings,
+        **testcase.get("settings_override", {}),
+    }  # override settings
+
+    seed = settings["random_seed"]
+
+    demo_keys = get_jwk(settings["key_settings"], True, seed)
     use_decoys = testcase.get("add_decoy_claims", False)
     serialization_format = testcase.get("serialization_format", "compact")
     include_default_claims = testcase.get("include_default_claims", True)
     extra_header_parameters = testcase.get("extra_header_parameters", {})
+    issuer_keys = demo_keys["issuer_keys"]
+    holder_key = demo_keys["holder_key"] if testcase.get("key_binding", False) else None
 
     claims = {}
     if include_default_claims:
@@ -55,8 +62,8 @@ def generate_test_case_data(settings: Dict, testcase_path: Path, type: str):
     SDJWTIssuer.unsafe_randomness = True
     sdjwt_at_issuer = SDJWTIssuer(
         claims,
-        demo_keys["issuer_key"],
-        demo_keys["holder_key"] if testcase.get("key_binding", False) else None,
+        issuer_keys,
+        holder_key,
         add_decoy_claims=use_decoys,
         serialization_format=serialization_format,
         extra_header_parameters=extra_header_parameters,
@@ -70,13 +77,13 @@ def generate_test_case_data(settings: Dict, testcase_path: Path, type: str):
     )
     sdjwt_at_holder.create_presentation(
         testcase["holder_disclosed_claims"],
-        settings["key_binding_nonce"]
-        if testcase.get("key_binding", False)
-        else None,
-        settings["identifiers"]["verifier"]
-        if testcase.get("key_binding", False)
-        else None,
-        demo_keys["holder_key"] if testcase.get("key_binding", False) else None,
+        settings["key_binding_nonce"] if testcase.get("key_binding", False) else None,
+        (
+            settings["identifiers"]["verifier"]
+            if testcase.get("key_binding", False)
+            else None
+        ),
+        holder_key,
     )
 
     ### Verify the SD-JWT using the SD-JWT-R
@@ -86,19 +93,19 @@ def generate_test_case_data(settings: Dict, testcase_path: Path, type: str):
     def cb_get_issuer_key(issuer, header_parameters):
         # Do not use in production - this allows to use any issuer name for demo purposes
         if issuer == claims.get("iss", None):
-            return demo_keys["issuer_public_key"]
+            return demo_keys["issuer_public_keys"]
         else:
             raise Exception(f"Unknown issuer: {issuer}")
 
     sdjwt_at_verifier = SDJWTVerifier(
         sdjwt_at_holder.sd_jwt_presentation,
         cb_get_issuer_key,
-        settings["identifiers"]["verifier"]
-        if testcase.get("key_binding", False)
-        else None,
-        settings["key_binding_nonce"]
-        if testcase.get("key_binding", False)
-        else None,
+        (
+            settings["identifiers"]["verifier"]
+            if testcase.get("key_binding", False)
+            else None
+        ),
+        settings["key_binding_nonce"] if testcase.get("key_binding", False) else None,
         serialization_format=serialization_format,
     )
     verified = sdjwt_at_verifier.get_verified_payload()
@@ -142,16 +149,20 @@ def generate_test_case_data(settings: Dict, testcase_path: Path, type: str):
         _artifacts.update(
             {
                 "kb_jwt_header": (
-                    sdjwt_at_holder.key_binding_jwt_header
-                    if testcase.get("key_binding")
-                    else None,
+                    (
+                        sdjwt_at_holder.key_binding_jwt_header
+                        if testcase.get("key_binding")
+                        else None
+                    ),
                     "Header of the Holder Binding JWT",
                     "json",
                 ),
                 "kb_jwt_payload": (
-                    sdjwt_at_holder.key_binding_jwt_payload
-                    if testcase.get("key_binding")
-                    else None,
+                    (
+                        sdjwt_at_holder.key_binding_jwt_payload
+                        if testcase.get("key_binding")
+                        else None
+                    ),
                     "Payload of the Holder Binding JWT",
                     "json",
                 ),

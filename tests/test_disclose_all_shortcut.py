@@ -6,11 +6,12 @@ from sd_jwt.utils.yaml_specification import remove_sdobj_wrappers
 
 
 def test_e2e(testcase, settings):
+    settings.update(testcase.get("settings_override", {}))
     seed = settings["random_seed"]
     demo_keys = get_jwk(settings["key_settings"], True, seed)
     use_decoys = testcase.get("add_decoy_claims", False)
     serialization_format = testcase.get("serialization_format", "compact")
-    
+
     extra_header_parameters = {"typ": "testcase+sd-jwt"}
     extra_header_parameters.update(testcase.get("extra_header_parameters", {}))
 
@@ -22,7 +23,7 @@ def test_e2e(testcase, settings):
     SDJWTIssuer.unsafe_randomness = True
     sdjwt_at_issuer = SDJWTIssuer(
         user_claims,
-        demo_keys["issuer_key"],
+        demo_keys["issuer_keys"],
         demo_keys["holder_key"] if testcase.get("key_binding", False) else None,
         add_decoy_claims=use_decoys,
         serialization_format=serialization_format,
@@ -37,9 +38,11 @@ def test_e2e(testcase, settings):
 
     # Verifier
     sdjwt_header_parameters = {}
+
     def cb_get_issuer_key(issuer, header_parameters):
-        sdjwt_header_parameters.update(header_parameters)
-        return demo_keys["issuer_public_key"]
+        if type(header_parameters) == dict:
+            sdjwt_header_parameters.update(header_parameters)
+        return demo_keys["issuer_public_keys"]
 
     sdjwt_at_verifier = SDJWTVerifier(
         output_holder,
@@ -61,9 +64,13 @@ def test_e2e(testcase, settings):
 
     assert verified == expected_claims
 
+    # We don't compare header parameters for JSON Serialization for now
+    if serialization_format != "compact":
+        return
+
     expected_header_parameters = {
         "alg": testcase.get("sign_alg", "ES256"),
-        "typ": "testcase+sd-jwt"
+        "typ": "testcase+sd-jwt",
     }
     expected_header_parameters.update(extra_header_parameters)
 

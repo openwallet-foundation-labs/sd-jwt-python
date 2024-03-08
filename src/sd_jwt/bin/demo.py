@@ -21,9 +21,13 @@ from sd_jwt.utils.formatting import (
     textwrap_json,
     textwrap_text,
     multiline_code,
+    markdown_disclosures,
     EXAMPLE_SHORT_WIDTH,
 )
-from sd_jwt.utils.yaml_specification import load_yaml_specification
+from sd_jwt.utils.yaml_specification import (
+    load_yaml_specification,
+    remove_sdobj_wrappers,
+)
 
 logger = logging.getLogger("sd_jwt")
 
@@ -34,6 +38,7 @@ def generate_nonce():
 
 
 DEFAULT_EXP_MINS = 15
+
 
 def run():
     parser = argparse.ArgumentParser(
@@ -119,6 +124,12 @@ def run():
 
     ### Load settings
     settings = load_yaml_settings(_args.settings_path)
+    ### Load example file
+    example_identifer = _args.example.stem
+    example = load_yaml_specification(_args.example)
+    ### "settings_override" key in example can override settings
+    settings.update(example.get("settings_override", {}))
+    print(f"Settings: {settings}")
 
     # If "no randomness" is requested, we hash the file name of the example
     # file to use it as the random seed. This ensures that the same example
@@ -134,18 +145,15 @@ def run():
         seed = None
 
     demo_keys = get_jwk(settings["key_settings"], _args.no_randomness, seed)
-
-    ### Load example file
-
-    example_identifer = _args.example.stem
-    example = load_yaml_specification(_args.example)
+    print(f"Using keys: {demo_keys}")
     use_decoys = example.get("add_decoy_claims", False)
+    serialization_format = example.get("serialization_format", "compact")
 
     ### Add default claims if necessary
     iat = _args.iat or int(datetime.datetime.utcnow().timestamp())
     exp = _args.exp or iat + (DEFAULT_EXP_MINS * 60)
     claims = {
-        "iss": settings.ISSUER,
+        "iss": settings["identifiers"]["issuer"],
         "iat": iat,
         "exp": exp,
     }
@@ -156,82 +164,92 @@ def run():
     SDJWTIssuer.unsafe_randomness = _args.no_randomness
     sdjwt_at_issuer = SDJWTIssuer(
         claims,
-        demo_keys["issuer_key"],
+        demo_keys["issuer_keys"],
         demo_keys["holder_key"] if example.get("key_binding", False) else None,
         add_decoy_claims=use_decoys,
+        serialization_format=serialization_format,
     )
 
     ### Produce SD-JWT-R for selected example
 
     # Note: The only input from the issuer is the combined SD-JWT and SVC!
 
-    sdjwt_at_holder = SDJWTHolder(sdjwt_at_issuer.sd_jwt_issuance)
+    sdjwt_at_holder = SDJWTHolder(
+        sdjwt_at_issuer.sd_jwt_issuance,
+        serialization_format=serialization_format,
+    )
     sdjwt_at_holder.create_presentation(
         example["holder_disclosed_claims"],
         _args.nonce if example.get("key_binding", False) else None,
-        settings.VERIFIER if example.get("key_binding", False) else None,
+        (
+            settings["identifiers"]["issuer"]
+            if example.get("key_binding", False)
+            else None
+        ),
         demo_keys["holder_key"] if example.get("key_binding", False) else None,
     )
 
     ### Verify the SD-JWT using the SD-JWT-R
 
-
     # Define a function to check the issuer and retrieve the
     # matching public key
-    def cb_get_issuer_key(issuer):
+    def cb_get_issuer_key(issuer, header_parameters):
         # Do not use in production - this allows to use any issuer name for demo purposes
         if issuer == claims["iss"]:
-            return demo_keys["issuer_public_key"]
+            return demo_keys["issuer_public_keys"]
         else:
             raise Exception(f"Unknown issuer: {issuer}")
-
 
     # Note: The only input from the holder is the combined presentation!
     sdjwt_at_verifier = SDJWTVerifier(
         sdjwt_at_holder.sd_jwt_presentation,
         cb_get_issuer_key,
-        settings.VERIFIER if example.get("key_binding", False) else None,
+        (
+            settings["identifiers"]["issuer"]
+            if example.get("key_binding", False)
+            else None
+        ),
         _args.nonce if example.get("key_binding", False) else None,
+        serialization_format=serialization_format,
     )
     verified = sdjwt_at_verifier.get_verified_payload()
 
     ### Done - now output everything to CLI (unless --replace-examples-in was used)
 
-    iid_payload = ""
-    for hash in sdjwt_at_holder._hash_to_decoded_disclosure:
-        salt, claim_name, claim_value = sdjwt_at_holder._hash_to_decoded_disclosure[hash]
-        b64 = sdjwt_at_holder._hash_to_disclosure[hash]
-        encoded_json = sdjwt_at_holder._base64url_decode(b64).decode("utf-8")
-
-        iid_payload += (
-            f"__Claim `{claim_name}`:__\n\n"
-            f" * SHA-256 Hash: `{hash}`\n"
-            f" * Disclosure:\\\n"
-            f"{multiline_code(textwrap_text(b64, EXAMPLE_SHORT_WIDTH))}\n"
-            f" * Contents:\n"
-            f"{multiline_code(textwrap_text(encoded_json, EXAMPLE_SHORT_WIDTH))}\n\n\n"
-        )
-
-    iid_payload = iid_payload.strip()
-
     _artifacts = {
-        "user_claims": (example["user_claims"], "User Claims", "json"),
-        "sd_jwt_payload": (sdjwt_at_issuer.sd_jwt_payload, "Payload of the SD-JWT", "json"),
+        "user_claims": (
+            remove_sdobj_wrappers(example["user_claims"]),
+            "User Claims",
+            "json",
+        ),
+        "sd_jwt_payload": (
+            sdjwt_at_issuer.sd_jwt_payload,
+            "Payload of the SD-JWT",
+            "json",
+        ),
         "sd_jwt_jws_part": (
             sdjwt_at_issuer.serialized_sd_jwt,
             "Serialized SD-JWT",
             "txt",
         ),
-        "disclosures": (iid_payload, "Payloads of the II-Disclosures", "md"),
+        "disclosures": (
+            markdown_disclosures(
+                sdjwt_at_issuer.ii_disclosures,
+            ),
+            "Payloads of the II-Disclosures",
+            "md",
+        ),
         "sd_jwt_issuance": (
             sdjwt_at_issuer.sd_jwt_issuance,
             "Combined SD-JWT and Disclosures",
             "txt",
         ),
         "kb_jwt_payload": (
-            sdjwt_at_holder.key_binding_jwt_payload
-            if example.get("key_binding")
-            else None,
+            (
+                sdjwt_at_holder.key_binding_jwt_payload
+                if example.get("key_binding")
+                else None
+            ),
             "Payload of the Holder Binding JWT",
             "json",
         ),
@@ -245,7 +263,11 @@ def run():
             "Combined representation of SD-JWT and HS-Disclosures",
             "txt",
         ),
-        "verified_contents": (verified, "Verified released contents of the SD-JWT", "json"),
+        "verified_contents": (
+            verified,
+            "Verified released contents of the SD-JWT",
+            "json",
+        ),
     }
 
     # When decoys were used, list those as well
@@ -261,7 +283,6 @@ def run():
             "Decoy Claims",
             "md",
         )
-
 
     if _args.output_dir:
         logger.info(
@@ -305,6 +326,7 @@ def run():
                 print_decoded_repr(data)
 
         sys.exit(0)
+
 
 if __name__ == "__main__":
     run()

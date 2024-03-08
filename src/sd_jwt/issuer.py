@@ -1,6 +1,6 @@
 import random
-from json import loads, dumps
-from typing import Dict, List
+from json import dumps
+from typing import Dict, List, Union
 
 from jwcrypto.jws import JWS
 
@@ -9,6 +9,7 @@ from .common import (
     DIGEST_ALG_KEY,
     SD_DIGESTS_KEY,
     SD_LIST_PREFIX,
+    JSON_SER_DISCLOSURE_KEY,
     SDJWTCommon,
     SDObj,
 )
@@ -31,7 +32,7 @@ class SDJWTIssuer(SDJWTCommon):
     def __init__(
         self,
         user_claims: Dict,
-        issuer_key,
+        issuer_keys: Union[Dict, List[Dict]],
         holder_key=None,
         sign_alg=None,
         add_decoy_claims: bool = False,
@@ -41,7 +42,9 @@ class SDJWTIssuer(SDJWTCommon):
         super().__init__(serialization_format=serialization_format)
 
         self._user_claims = user_claims
-        self._issuer_key = issuer_key
+        if not isinstance(issuer_keys, list):
+            issuer_keys = [issuer_keys]
+        self._issuer_keys = issuer_keys
         self._holder_key = holder_key
         self._sign_alg = sign_alg or DEFAULT_SIGNING_ALG
         self._add_decoy_claims = add_decoy_claims
@@ -49,6 +52,12 @@ class SDJWTIssuer(SDJWTCommon):
 
         self.ii_disclosures = []
         self.decoy_digests = []
+
+        if len(self._issuer_keys) > 1 and self._serialization_format != "json":
+            raise ValueError(
+                f"Multiple issuer keys (here {len(self._issuer_keys)}) are only supported with JSON serialization."
+                f"\nKeys found: {self._issuer_keys}"
+            )
 
         self._check_for_sd_claim(self._user_claims)
         self._assemble_sd_jwt_payload()
@@ -166,32 +175,32 @@ class SDJWTIssuer(SDJWTCommon):
         """
 
         self.sd_jwt = JWS(payload=dumps(self.sd_jwt_payload))
-
         # Assemble protected headers starting with default
-        _protected_headers = {
-            "alg": self._sign_alg,
-            "typ": self.SD_JWT_HEADER
-        }
+        _protected_headers = {"alg": self._sign_alg, "typ": self.SD_JWT_HEADER}
+        if len(self._issuer_keys) == 1 and "kid" in self._issuer_keys[0]:
+            _protected_headers["kid"] = self._issuer_keys[0]["kid"]
+
         # override if any
         _protected_headers.update(self._extra_header_parameters)
 
-        self.sd_jwt.add_signature(
-            self._issuer_key,
-            alg=self._sign_alg,
-            protected=dumps(_protected_headers),
-        )
+        for i, key in enumerate(self._issuer_keys):
+            header = {"kid": key["kid"]} if "kid" in key else None
+
+            # for json-serialization, add the disclosures to the first header
+            if self._serialization_format == "json" and i == 0:
+                header = header or {}
+                header[JSON_SER_DISCLOSURE_KEY] = [d.b64 for d in self.ii_disclosures]
+
+            self.sd_jwt.add_signature(
+                key,
+                alg=self._sign_alg,
+                protected=dumps(_protected_headers),
+                header=header,
+            )
 
         self.serialized_sd_jwt = self.sd_jwt.serialize(
             compact=(self._serialization_format == "compact")
         )
-
-        # If serialization_format is "json", then add the disclosures to the JSON.
-        # There does not seem to be a straightforward way to do that with the library
-        # other than JSON-decoding the JWS and JSON-encoding it again.
-        if self._serialization_format == "json":
-            jws_content = loads(self.serialized_sd_jwt)
-            jws_content[self.JWS_KEY_DISCLOSURES] = [d.b64 for d in self.ii_disclosures]
-            self.serialized_sd_jwt = dumps(jws_content)
 
     def _create_combined(self):
         if self._serialization_format == "compact":
