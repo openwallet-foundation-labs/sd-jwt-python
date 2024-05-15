@@ -70,7 +70,7 @@ def test_e2e(testcase, settings):
 
     expected_header_parameters = {
         "alg": testcase.get("sign_alg", "ES256"),
-        "typ": "testcase+sd-jwt",
+        "typ": "testcase+sd-jwt"
     }
     expected_header_parameters.update(extra_header_parameters)
 

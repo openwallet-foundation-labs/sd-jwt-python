@@ -128,7 +128,7 @@ class SDJWTCommon:
             (
                 self._unverified_input_sd_jwt,
                 *self._input_disclosures,
-                self._unverified_input_key_binding_jwt,
+                self._unverified_input_key_binding_jwt
             ) = self._split(sd_jwt)
 
             # Extract only the body from SD-JWT without verifying the signature
@@ -164,7 +164,7 @@ class SDJWTCommon:
                     [
                         self._unverified_input_sd_jwt_parsed["protected"],
                         self._unverified_input_sd_jwt_parsed["payload"],
-                        self._unverified_input_sd_jwt_parsed["signature"],
+                        self._unverified_input_sd_jwt_parsed["signature"]
                     ]
                 )
 
@@ -199,6 +199,6 @@ class SDJWTCommon:
         string_to_hash = self._combine(
             self._unverified_compact_serialized_input_sd_jwt,
             *disclosures,
-            "",
+            ""
         )
         return self._b64hash(string_to_hash.encode("ascii"))
