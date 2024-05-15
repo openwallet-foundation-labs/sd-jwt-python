@@ -19,6 +19,13 @@ def load_yaml_settings(file):
         if property not in settings:
             sys.exit(f"Settings file must define '{property}'.")
 
+    # 'issuer_key' can be used instead of 'issuer_keys' in the key settings; will be converted to an array anyway
+    if "issuer_key" in settings["key_settings"]:
+        if "issuer_keys" in settings["key_settings"]:
+            sys.exit("Settings file cannot define both 'issuer_key' and 'issuer_keys'.")
+        
+        settings["key_settings"]["issuer_keys"] = [settings["key_settings"]["issuer_key"]]
+
     return settings
 
 
