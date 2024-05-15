@@ -1,13 +1,15 @@
-import logging 
+import logging
 
 from .common import (
-    SDJWTCommon, 
-    DEFAULT_SIGNING_ALG, 
-    SD_DIGESTS_KEY, 
-    SD_LIST_PREFIX, 
-    KB_DIGEST_KEY
+    SDJWTCommon,
+    DEFAULT_SIGNING_ALG,
+    SD_DIGESTS_KEY,
+    SD_LIST_PREFIX,
+    KB_DIGEST_KEY,
+    JSON_SER_DISCLOSURE_KEY,
+    JSON_SER_KB_JWT_KEY,
 )
-from json import dumps, loads
+from json import dumps
 from time import time
 from typing import Dict, List, Optional
 from itertools import zip_longest
@@ -52,15 +54,10 @@ class SDJWTHolder(SDJWTCommon):
 
         # Optional: Create a key binding JWT
         if nonce and aud and holder_key:
-            # Temporarily create the combined presentation in order to create the hash over it
-            string_to_hash = self._combine(
-                    self.serialized_sd_jwt,
-                    *self.hs_disclosures,
-                    ""
-                )
-            sd_jwt_presentation_hash = self._b64hash(string_to_hash.encode("ascii"))
-            self._create_key_binding_jwt(nonce, aud, sd_jwt_presentation_hash, holder_key, sign_alg)
-
+            sd_jwt_presentation_hash = self._calculate_kb_hash(self.hs_disclosures)
+            self._create_key_binding_jwt(
+                nonce, aud, sd_jwt_presentation_hash, holder_key, sign_alg
+            )
 
         # Create the combined presentation
         if self._serialization_format == "compact":
@@ -73,14 +70,29 @@ class SDJWTHolder(SDJWTCommon):
             )
         else:
             # In this case, take the parsed JSON serialized SD-JWT and
-            # only filter the disclosures in the header. Add the holder
+            # only filter the disclosures in the header. Add the key
             # binding JWT to the header if it was created.
-            self.sd_jwt_parsed[self.JWS_KEY_DISCLOSURES] = self.hs_disclosures
-            if self.serialized_key_binding_jwt:
-                self.sd_jwt_parsed[
-                    self.JWS_KEY_KB_JWT
-                ] = self.serialized_key_binding_jwt
-            self.sd_jwt_presentation = dumps(self.sd_jwt_parsed)
+            presentation = self._unverified_input_sd_jwt_parsed
+            if "signature" in presentation:
+                # flattened JSON serialization
+                presentation["header"][JSON_SER_DISCLOSURE_KEY] = self.hs_disclosures
+
+                if self.serialized_key_binding_jwt:
+                    presentation["header"][
+                        JSON_SER_KB_JWT_KEY
+                    ] = self.serialized_key_binding_jwt
+            else:
+                # general, add everything to first signature's header
+                presentation["signatures"][0]["header"][
+                    JSON_SER_DISCLOSURE_KEY
+                ] = self.hs_disclosures
+
+                if self.serialized_key_binding_jwt:
+                    presentation["signatures"][0]["header"][
+                        JSON_SER_KB_JWT_KEY
+                    ] = self.serialized_key_binding_jwt
+
+            self.sd_jwt_presentation = dumps(presentation)
 
     def _select_disclosures(self, sd_jwt_claims, claims_to_disclose):
         # Recursively process the claims in sd_jwt_claims. In each

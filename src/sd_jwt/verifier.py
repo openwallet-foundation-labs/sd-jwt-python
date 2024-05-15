@@ -59,7 +59,9 @@ class SDJWTVerifier(SDJWTCommon):
 
         unverified_issuer = self._unverified_input_sd_jwt_payload.get("iss", None)
         unverified_header_parameters = parsed_input_sd_jwt.jose_header
-        issuer_public_key = cb_get_issuer_key(unverified_issuer, unverified_header_parameters)
+        issuer_public_key = cb_get_issuer_key(
+            unverified_issuer, unverified_header_parameters
+        )
         parsed_input_sd_jwt.verify(issuer_public_key, alg=sign_alg)
 
         self._sd_jwt_payload = loads(parsed_input_sd_jwt.payload.decode("utf-8"))
@@ -111,14 +113,14 @@ class SDJWTVerifier(SDJWTCommon):
 
         # Reassemble the SD-JWT in compact format and check digest
         if self._serialization_format == "compact":
-            string_to_hash = self._combine(
-                        self._unverified_input_sd_jwt,
-                        *self._input_disclosures,
-                        ""
+            expected_sd_jwt_presentation_hash = self._calculate_kb_hash(
+                self._input_disclosures
             )
-            expected_sd_jwt_presentation_hash = self._b64hash(string_to_hash.encode("ascii"))
 
-            if key_binding_jwt_payload[KB_DIGEST_KEY] != expected_sd_jwt_presentation_hash:
+            if (
+                key_binding_jwt_payload[KB_DIGEST_KEY]
+                != expected_sd_jwt_presentation_hash
+            ):
                 raise ValueError("Invalid digest in KB-JWT")
 
     def _extract_sd_claims(self):
