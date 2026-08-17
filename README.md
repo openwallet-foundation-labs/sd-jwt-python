@@ -1,4 +1,4 @@
-# SD-JWT Reference Implementation
+# SD-JWT Python Reference Implementation
 
 This is the reference implementation of the [IETF SD-JWT specification](https://datatracker.ietf.org/doc/draft-ietf-oauth-selective-disclosure-jwt/) written in Python.
 
